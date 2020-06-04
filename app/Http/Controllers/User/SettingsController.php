@@ -4,6 +4,7 @@ namespace App\Http\Controllers\User;
 
 use App\Http\Controllers\Controller;
 use App\Http\Resources\UserResource;
+use App\Repositories\Contracts\IUser;
 use App\Rules\CheckSamePassword;
 use App\Rules\MatchOldPassword;
 use Grimzy\LaravelMysqlSpatial\Types\Point;
@@ -11,6 +12,13 @@ use Illuminate\Http\Request;
 
 class SettingsController extends Controller
 {
+
+    protected $users;
+
+    public function __construct(IUser $users)
+    {
+       $this->users = $users;
+    }
     public function updateProfile(Request $request)
     {
         $user = auth()->user();
@@ -26,7 +34,7 @@ class SettingsController extends Controller
 
         $location = new Point($request->location['latitude'], $request->location['longitude']);
 
-        $user->update([
+       $user = $this->users->update(auth()->id(), [
             'name' => $request->name,
             'formatted_address' => $request->formatted_address,
             'location' => $location,
@@ -51,9 +59,13 @@ class SettingsController extends Controller
             'password' => ['required', 'confirmed', 'min:6', new CheckSamePassword],
         ]);
 
-        $request->user()->update([
+        $this->users->update(auth()->id(),[
             'password' => bcrypt($request->password),
         ]);
+
+        /*$request->user()->update([
+            'password' => bcrypt($request->password),
+        ]);*/
 
         return response()->json(['message' => 'Password updated']);
 
